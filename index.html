@@ -28,42 +28,44 @@
 <script>
     // 성경 각 권의 장 수 데이터 (Bolls Life API 기준)
     // 실제로는 더 정밀한 데이터가 필요하지만, 우선 66권 범위를 지정합니다.
-    async function getRandomVerse() {
-        const btn = document.getElementById('draw-btn');
-        const contentDiv = document.getElementById('verse-content');
-        const refDiv = document.getElementById('verse-ref');
+async function getRandomVerse() {
+    const btn = document.getElementById('draw-btn');
+    const contentDiv = document.getElementById('verse-content');
+    const refDiv = document.getElementById('verse-ref');
 
-        btn.classList.add('loading');
-        contentDiv.innerText = "말씀을 찾는 중...";
-        refDiv.innerText = "";
+    btn.classList.add('loading');
+    contentDiv.innerText = "하나님의 말씀을 기다리는 중...";
+    refDiv.innerText = "";
 
-        try {
-            // 1. 랜덤으로 권(Book) 선택 (1~66)
-            const bookId = Math.floor(Math.random() * 66) + 1;
-            
-            // 2. 해당 권의 장(Chapter) 정보를 가져옴
-            const chaptersResp = await fetch(`https://bolls.life/get-chapters/KRV/${bookId}/`);
-            const chapters = await chaptersResp.json();
-            const randomChapter = chapters[Math.floor(Math.random() * chapters.length)].chapter;
+    try {
+        // 1. 랜덤으로 권(Book) 선택 (1~66)
+        const bookId = Math.floor(Math.random() * 66) + 1;
+        
+        // 2. 해당 권의 장(Chapter) 목록을 가져와서 그 중 하나를 랜덤 선택
+        // Bolls API는 특정 권의 장 정보를 가져올 때 아래 형식을 사용합니다.
+        const chaptersResp = await fetch(`https://bolls.life/get-chapters/KRV/${bookId}/`);
+        const chapters = await chaptersResp.json(); 
+        // chapters는 [{ "chapter": 1 }, { "chapter": 2 }...] 형태의 배열입니다.
+        const randomChapter = chapters[Math.floor(Math.random() * chapters.length)].chapter;
 
-            // 3. 해당 장의 절(Verse) 정보를 가져옴
-            const versesResp = await fetch(`https://bolls.life/get-text/KRV/${bookId}/${randomChapter}/`);
-            const verses = await versesResp.json();
-            const randomVerse = verses[Math.floor(Math.random() * verses.length)];
+        // 3. 해당 장(Chapter)의 전체 절 데이터를 가져옴
+        const versesResp = await fetch(`https://bolls.life/get-text/KRV/${bookId}/${randomChapter}/`);
+        const verses = await versesResp.json();
+        
+        // 4. 해당 장의 구절 중 하나를 랜덤 선택
+        const randomVerse = verses[Math.floor(Math.random() * verses.length)];
 
-            // 4. 화면에 출력
-            contentDiv.innerText = `"${randomVerse.text}"`;
-            // API 결과값에 따라 성경 이름 매칭이 필요할 수 있으나, 기본적으로 정보를 제공함
-            refDiv.innerText = `[${randomVerse.book_name} ${randomVerse.chapter}:${randomVerse.verse}]`;
-            
-        } catch (error) {
-            contentDiv.innerText = "말씀을 불러오는데 실패했습니다. 다시 시도해주세요.";
-            console.error(error);
-        } finally {
-            btn.classList.remove('loading');
-            btn.innerText = "다시 뽑기";
-        }
+        // 5. 화면에 출력 (API 응답 필드명 확인: text, verse, book_name 등)
+        contentDiv.innerText = `"${randomVerse.text}"`;
+        refDiv.innerText = `- ${randomVerse.book_name} ${randomVerse.chapter}:${randomVerse.verse} (개역한글) -`;
+        
+    } catch (error) {
+        contentDiv.innerText = "말씀을 불러오는데 잠시 문제가 생겼습니다. 다시 버튼을 눌러주세요.";
+        console.error("API Error:", error);
+    } finally {
+        btn.classList.remove('loading');
     }
+}
 </script>
 </body>
 </html>
