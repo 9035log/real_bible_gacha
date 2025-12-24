@@ -5,90 +5,68 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>2025 새해 말씀 뽑기</title>
     <style>
-        /* 간단하고 깔끔한 디자인 */
         body { font-family: 'Nanum Myeongjo', serif; background-color: #f4f1ea; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
         .container { text-align: center; background: white; padding: 3rem; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); max-width: 80%; }
         h1 { color: #4a4a4a; font-size: 1.5rem; margin-bottom: 2rem; }
-        #verse-content { font-size: 1.3rem; line-height: 1.8; margin-bottom: 1.5rem; min-height: 100px; color: #2c3e50; }
+        #verse-content { font-size: 1.3rem; line-height: 1.8; margin-bottom: 1.5rem; min-height: 100px; color: #2c3e50; white-space: pre-wrap; word-break: keep-all; }
         #verse-ref { font-size: 1rem; color: #95a5a6; margin-bottom: 2rem; }
         button { background-color: #c0a080; color: white; border: none; padding: 12px 25px; border-radius: 50px; cursor: pointer; font-size: 1rem; transition: 0.3s; }
-        button:hover { background-color: #a68a6d; transform: translateY(-2px); }
-        .loading { opacity: 0.5; pointer-events: none; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        #status { font-size: 0.8rem; color: #aaa; margin-top: 10px; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h1>📖 2025 새해 하나님이 주시는 말씀</h1>
-    <div id="verse-content">"버튼을 눌러 올해의 말씀을 확인하세요"</div>
+    <div id="verse-content">성경 데이터를 불러오는 중입니다...</div>
     <div id="verse-ref"></div>
-    <button onclick="getRandomVerse()" id="draw-btn">말씀 뽑기</button>
+    <button onclick="drawVerse()" id="draw-btn" disabled>말씀 뽑기</button>
+    <div id="status"></div>
 </div>
 
 <script>
-    // 성경 66권별 장 수 데이터 (안정성을 위해 내장)
-    const bibleData = [
-        {name: "창세기", chapters: 50}, {name: "출애굽기", chapters: 40}, {name: "레위기", chapters: 27},
-        {name: "민수기", chapters: 36}, {name: "신명기", chapters: 34}, {name: "여호수아", chapters: 24},
-        {name: "사사기", chapters: 21}, {name: "루기", chapters: 4}, {name: "사무엘상", chapters: 31},
-        {name: "사무엘하", chapters: 24}, {name: "열왕기상", chapters: 22}, {name: "열왕기하", chapters: 25},
-        {name: "역대상", chapters: 29}, {name: "역대하", chapters: 36}, {name: "에스라", chapters: 10},
-        {name: "느헤미야", chapters: 13}, {name: "에스더", chapters: 10}, {name: "욥기", chapters: 42},
-        {name: "시편", chapters: 150}, {name: "잠언", chapters: 31}, {name: "전도서", chapters: 12},
-        {name: "아가", chapters: 8}, {name: "이사야", chapters: 66}, {name: "예레미야", chapters: 52},
-        {name: "예레미야 애가", chapters: 5}, {name: "에스겔", chapters: 48}, {name: "단이엘", chapters: 12},
-        {name: "호세아", chapters: 14}, {name: "요엘", chapters: 3}, {name: "아모스", chapters: 9},
-        {name: "오바댜", chapters: 1}, {name: "요나", chapters: 4}, {name: "미가", chapters: 7},
-        {name: "나훔", chapters: 3}, {name: "하박국", chapters: 3}, {name: "스바냐", chapters: 3},
-        {name: "학개", chapters: 2}, {name: "스가랴", chapters: 14}, {name: "말라기", chapters: 4},
-        {name: "마태복음", chapters: 28}, {name: "마가복음", chapters: 16}, {name: "누가복음", chapters: 24},
-        {name: "요한복음", chapters: 21}, {name: "사도행전", chapters: 28}, {name: "로마서", chapters: 16},
-        {name: "고린도전서", chapters: 16}, {name: "고린도후서", chapters: 13}, {name: "갈라디아서", chapters: 6},
-        {name: "에베소서", chapters: 6}, {name: "빌립보서", chapters: 4}, {name: "골로새서", chapters: 4},
-        {name: "데살로니가전서", chapters: 5}, {name: "데살로니가후서", chapters: 3}, {name: "디모데전서", chapters: 6},
-        {name: "디모데후서", chapters: 4}, {name: "디도서", chapters: 3}, {name: "빌레몬서", chapters: 1},
-        {name: "히브리서", chapters: 13}, {name: "야고보서", chapters: 5}, {name: "베드로전서", chapters: 5},
-        {name: "베드로후서", chapters: 3}, {name: "요한1서", chapters: 5}, {name: "요한2서", chapters: 1},
-        {name: "요한3서", chapters: 1}, {name: "유다서", chapters: 1}, {name: "요한계시록", chapters: 22}
-    ];
+    let bibleData = [];
 
-    async function getRandomVerse() {
-        const btn = document.getElementById('draw-btn');
+    // 1. 페이지 로드 시 성경 데이터 전체를 미리 가져옴 (약 4MB)
+    // 아래 주소는 깃허브에 공개된 개역한글 JSON 데이터입니다.
+    window.onload = async function() {
+        const status = document.getElementById('status');
         const contentDiv = document.getElementById('verse-content');
-        const refDiv = document.getElementById('verse-ref');
-
-        btn.classList.add('loading');
-        contentDiv.innerText = "하나님의 말씀을 기다리는 중...";
-        refDiv.innerText = "";
+        const btn = document.getElementById('draw-btn');
 
         try {
-            // 1. 랜덤 권 선택
-            const bookIdx = Math.floor(Math.random() * bibleData.length);
-            const selectedBook = bibleData[bookIdx];
-            const bookId = bookIdx + 1;
+            // 오픈소스 성경 데이터(JSON) 로드
+            const response = await fetch('https://raw.githubusercontent.com/thebeon/bible-json/master/ko_ko.json');
+            if (!response.ok) throw new Error();
             
-            // 2. 랜덤 장 선택
-            const randomChapter = Math.floor(Math.random() * selectedBook.chapters) + 1;
-
-            // 3. 해당 장의 모든 절 가져오기
-            const response = await fetch(`https://bolls.life/get-text/KRV/${bookId}/${randomChapter}/`);
-            if (!response.ok) throw new Error("Network response was not ok");
+            const data = await response.json();
+            // 데이터 구조에 따라 필요한 배열 추출
+            bibleData = data.verses || data; 
             
-            const verses = await response.json();
-            
-            // 4. 랜덤 절 선택
-            const randomVerse = verses[Math.floor(Math.random() * verses.length)];
-
-            // 5. 화면 출력
-            contentDiv.innerText = `"${randomVerse.text}"`;
-            refDiv.innerText = `- ${selectedBook.name} ${randomVerse.chapter}:${randomVerse.verse} (개역한글) -`;
-            
-        } catch (error) {
-            contentDiv.innerText = "말씀을 불러오는 중 오류가 발생했습니다. (네트워크 확인)";
-            console.error("API Error:", error);
-        } finally {
-            btn.classList.remove('loading');
+            contentDiv.innerText = "데이터 로드 완료!\n아래 버튼을 눌러 말씀을 뽑으세요.";
+            btn.disabled = false;
+            status.innerText = `총 ${bibleData.length.toLocaleString()}구절 준비됨`;
+        } catch (e) {
+            contentDiv.innerText = "데이터를 불러오지 못했습니다.\n네트워크 상태를 확인해주세요.";
+            console.error(e);
         }
+    };
+
+    // 2. 이미 로드된 데이터에서 랜덤으로 하나 선택
+    function drawVerse() {
+        if (bibleData.length === 0) return;
+
+        const randomIndex = Math.floor(Math.random() * bibleData.length);
+        const v = bibleData[randomIndex];
+
+        // 데이터 필드명은 가져오는 소스에 따라 다를 수 있음 (확인 필요)
+        // 보통 book_name, chapter, verse, text 순서
+        const content = v.text;
+        const ref = `- ${v.book_name} ${v.chapter}:${v.verse} (개역한글) -`;
+
+        document.getElementById('verse-content').innerText = `"${content}"`;
+        document.getElementById('verse-ref').innerText = ref;
     }
 </script>
 </body>
