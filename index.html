@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2025 새해 말씀 뽑기</title>
+    <style>
+        /* 간단하고 깔끔한 디자인 */
+        body { font-family: 'Nanum Myeongjo', serif; background-color: #f4f1ea; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { text-align: center; background: white; padding: 3rem; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); max-width: 80%; }
+        h1 { color: #4a4a4a; font-size: 1.5rem; margin-bottom: 2rem; }
+        #verse-content { font-size: 1.3rem; line-height: 1.8; margin-bottom: 1.5rem; min-height: 100px; color: #2c3e50; }
+        #verse-ref { font-size: 1rem; color: #95a5a6; margin-bottom: 2rem; }
+        button { background-color: #c0a080; color: white; border: none; padding: 12px 25px; border-radius: 50px; cursor: pointer; font-size: 1rem; transition: 0.3s; }
+        button:hover { background-color: #a68a6d; transform: translateY(-2px); }
+        .loading { opacity: 0.5; pointer-events: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📖 2025 새해 하나님이 주시는 말씀</h1>
+    <div id="verse-content">"버튼을 눌러 올해의 말씀을 확인하세요"</div>
+    <div id="verse-ref"></div>
+    <button onclick="getRandomVerse()" id="draw-btn">말씀 뽑기</button>
+</div>
+
+<script>
+    // 성경 각 권의 장 수 데이터 (Bolls Life API 기준)
+    // 실제로는 더 정밀한 데이터가 필요하지만, 우선 66권 범위를 지정합니다.
+    async function getRandomVerse() {
+        const btn = document.getElementById('draw-btn');
+        const contentDiv = document.getElementById('verse-content');
+        const refDiv = document.getElementById('verse-ref');
+
+        btn.classList.add('loading');
+        contentDiv.innerText = "말씀을 찾는 중...";
+        refDiv.innerText = "";
+
+        try {
+            // 1. 랜덤으로 권(Book) 선택 (1~66)
+            const bookId = Math.floor(Math.random() * 66) + 1;
+            
+            // 2. 해당 권의 장(Chapter) 정보를 가져옴
+            const chaptersResp = await fetch(`https://bolls.life/get-chapters/KRV/${bookId}/`);
+            const chapters = await chaptersResp.json();
+            const randomChapter = chapters[Math.floor(Math.random() * chapters.length)].chapter;
+
+            // 3. 해당 장의 절(Verse) 정보를 가져옴
+            const versesResp = await fetch(`https://bolls.life/get-text/KRV/${bookId}/${randomChapter}/`);
+            const verses = await versesResp.json();
+            const randomVerse = verses[Math.floor(Math.random() * verses.length)];
+
+            // 4. 화면에 출력
+            contentDiv.innerText = `"${randomVerse.text}"`;
+            // API 결과값에 따라 성경 이름 매칭이 필요할 수 있으나, 기본적으로 정보를 제공함
+            refDiv.innerText = `[${randomVerse.book_name} ${randomVerse.chapter}:${randomVerse.verse}]`;
+            
+        } catch (error) {
+            contentDiv.innerText = "말씀을 불러오는데 실패했습니다. 다시 시도해주세요.";
+            console.error(error);
+        } finally {
+            btn.classList.remove('loading');
+            btn.innerText = "다시 뽑기";
+        }
+    }
+</script>
+</body>
+</html>
